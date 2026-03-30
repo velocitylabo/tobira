@@ -2,7 +2,18 @@
   "name": "haraka-plugin-tobira",
   "version": "0.0.1",
   "description": "Haraka plugin for tobira spam classification",
+  "author": "Velocity LABO",
+  "homepage": "https://velocitylabo.dev/",
+  "bugs": {
+    "url": "https://github.com/velocitylabo/tobira/issues"
+  },
   "main": "plugins/tobira.js",
+  "files": [
+    "plugins/",
+    "config/",
+    "README.md",
+    "LICENSE"
+  ],
   "engines": {
     "node": ">=18.0.0"
   },

@@ -5,9 +5,12 @@ build-backend = "hatchling.build"
 [project]
 name = "tobira"
 version = "0.5.0"
-description = "tobira - gateway toolkit"
+description = "ML-powered email spam detection toolkit with MTA integrations"
 readme = "README.md"
 license = "MIT"
+authors = [
+    { name = "Velocity LABO" },
+]
 requires-python = ">=3.9"
 keywords = [
     "spam",
@@ -89,7 +92,11 @@ tobira = "tobira.cli:main"
 #   my_backend = "my_package.backend:MyBackendClass"
 
 [project.urls]
+Homepage = "https://velocitylabo.dev/"
+Documentation = "https://velocitylabo.github.io/tobira"
 Repository = "https://github.com/velocitylabo/tobira"
+Changelog = "https://github.com/velocitylabo/tobira/blob/main/python/CHANGELOG.md"
+"Bug Reports" = "https://github.com/velocitylabo/tobira/issues"
 
 [dependency-groups]
 dev = [
