@@ -16,6 +16,10 @@ COPY integrations/haraka/ /tmp/haraka-plugin/
 RUN cp /tmp/haraka-plugin/plugins/tobira.js /opt/haraka/plugins/tobira.js && \
     rm -rf /tmp/haraka-plugin
 
+# Copy test-environment plugins (accept all recipients, discard queue)
+COPY docker/haraka/plugins/rcpt_to_any.js /opt/haraka/plugins/rcpt_to_any.js
+COPY docker/haraka/plugins/queue_discard.js /opt/haraka/plugins/queue_discard.js
+
 # Configure Haraka
 COPY docker/haraka/config/ /opt/haraka/config/
 

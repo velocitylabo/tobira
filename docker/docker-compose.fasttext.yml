@@ -1,0 +1,75 @@
+# Docker Compose configuration using the FastText backend.
+#
+# Lightweight and fast (~1ms per prediction). No GPU or external
+# model download required — the model is trained at build time
+# from sample data (50 samples).
+#
+# Usage:
+#   docker compose -f docker-compose.fasttext.yml up --build -d
+#   docker compose -f docker-compose.fasttext.yml logs -f tobira-api
+#   docker compose -f docker-compose.fasttext.yml down
+#
+# Verify:
+#   # ヘルスチェック
+#   curl -s http://localhost:8000/v1/health
+#   # → {"status":"ok"}
+#
+#   # spam 判定テスト
+#   curl -s -X POST http://localhost:8000/v1/predict \
+#     -H 'Content-Type: application/json' \
+#     -d '{"text": "Buy cheap medicine now! Free offer!"}'
+#   # → {"label":"spam","score":0.98,...}
+#
+#   # ham 判定テスト
+#   curl -s -X POST http://localhost:8000/v1/predict \
+#     -H 'Content-Type: application/json' \
+#     -d '{"text": "Hi, can we meet at 3pm tomorrow?"}'
+#   # → {"label":"ham","score":0.95,...}
+
+services:
+  # tobira API server (FastText backend)
+  tobira-api:
+    build:
+      context: ../
+      dockerfile: docker/api-fasttext/Dockerfile
+    ports:
+      - "8000:8000"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/v1/health')"]
+      interval: 5s
+      timeout: 3s
+      retries: 3
+
+  # Haraka MTA with tobira plugin
+  haraka:
+    build:
+      context: ../
+      dockerfile: docker/haraka/Dockerfile
+    ports:
+      - "2525:25"
+    depends_on:
+      tobira-api:
+        condition: service_healthy
+
+  # Rspamd with tobira plugin
+  rspamd:
+    build:
+      context: ../
+      dockerfile: docker/rspamd/Dockerfile
+    ports:
+      - "11333:11333"
+      - "11334:11334"
+    depends_on:
+      tobira-api:
+        condition: service_healthy
+
+  # SpamAssassin with tobira plugin
+  spamassassin:
+    build:
+      context: ../
+      dockerfile: docker/spamassassin/Dockerfile
+    ports:
+      - "783:783"
+    depends_on:
+      tobira-api:
+        condition: service_healthy

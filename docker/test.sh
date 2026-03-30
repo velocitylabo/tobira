@@ -145,8 +145,6 @@ except Exception as e:
 
   if echo "$haraka_ham" | grep -q "accepted"; then
     ok "ham email accepted: $haraka_ham"
-  elif echo "$haraka_ham" | grep -q "rejected-recipient"; then
-    ok "ham email processed (rejected by rcpt_to, not by tobira): $haraka_ham"
   else
     ng "ham email: $haraka_ham"
   fi
@@ -174,10 +172,8 @@ except Exception as e:
 
   if echo "$haraka_spam" | grep -q "rejected-spam"; then
     ok "spam email rejected by tobira plugin: $haraka_spam"
-  elif echo "$haraka_spam" | grep -q "rejected-recipient"; then
-    ok "spam email processed (rejected by rcpt_to): $haraka_spam"
   else
-    warn "spam email result: $haraka_spam (may need rcpt_to config)"
+    ng "spam email was not rejected: $haraka_spam"
   fi
 else
   warn "Haraka not reachable on port 2525 - skipping"

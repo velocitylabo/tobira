@@ -22,7 +22,13 @@ exports.register = function () {
   this.rejectSpam = rejectSpam;
   this.sendHeaders = sendHeaders;
 
+  this.register_hook("mail", "enable_body_parse");
   this.register_hook("data_post", "check_spam");
+};
+
+exports.enable_body_parse = function (next, connection) {
+  connection.transaction.parse_body = true;
+  return next();
 };
 
 exports.check_spam = function (next, connection) {

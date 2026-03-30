@@ -1,0 +1,10 @@
+**/.venv
+**/__pycache__
+**/*.pyc
+**/node_modules
+**/.git
+**/*.egg-info
+docs/handson/fasttext-spam.bin
+docs/handson/train.txt
+docs/handson/tobira.toml
+docs/handson/tobira-twostage.toml

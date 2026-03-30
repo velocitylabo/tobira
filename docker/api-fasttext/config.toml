@@ -1,0 +1,18 @@
+# tobira API server configuration (FastText backend)
+#
+# Lightweight, fast (~1ms per prediction), no GPU required.
+# Model is trained at Docker build time from sample data.
+
+[backend]
+type = "fasttext"
+model_path = "./fasttext-spam.bin"
+
+[serving]
+# No API key for local testing
+# api_key = "your-secret-key"
+
+[monitoring]
+enabled = false
+
+[feedback]
+enabled = false

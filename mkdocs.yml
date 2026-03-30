@@ -61,6 +61,9 @@ nav:
       - Postfix milter: mta/postfix-milter.md
   - CLI Reference: cli.md
   - API Reference: api.md
+  - Hands-on:
+      - FastText Backend: handson/fasttext.md
+      - CLI Workflow: handson/cli.md
   - Deployment Guide: getting-started/phased-rollout.md
   - Pricing: pricing.md
   - Roadmap: roadmap.md

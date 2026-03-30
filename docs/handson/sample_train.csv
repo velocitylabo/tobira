@@ -1,0 +1,51 @@
+text,label
+"Hi team, the quarterly review meeting is scheduled for Friday at 2pm.",ham
+"Please find attached the invoice for March services.",ham
+"Can we reschedule the 1-on-1 to Thursday afternoon?",ham
+"The deployment pipeline passed all checks. Ready to merge.",ham
+"Reminder: office closed next Monday for national holiday.",ham
+"I've updated the design doc with your feedback. PTAL.",ham
+"The new API endpoint is live in staging. Please test.",ham
+"Thanks for the quick turnaround on the bug fix!",ham
+"Let's sync on the Q2 roadmap before the board meeting.",ham
+"FYI: the SSL certificate for api.example.com expires next week.",ham
+"Could you review PR #42 when you get a chance?",ham
+"The database migration completed successfully last night.",ham
+"Lunch order for tomorrow — please reply with your choice.",ham
+"Our new team member starts on Monday. Please welcome them!",ham
+"The monitoring dashboard shows all services healthy.",ham
+"来週の定例会議の議題を共有します。ご確認ください。",ham
+"プロジェクトの進捗報告です。予定通り進んでいます。",ham
+"請求書を添付しましたのでご確認をお願いします。",ham
+"明日の打ち合わせは15時からに変更になりました。",ham
+"新しいメンバーが来月から参加します。よろしくお願いします。",ham
+"サーバーメンテナンスのお知らせ：土曜日の深夜に実施します。",ham
+"先日のご提案について社内で検討いたしました。",ham
+"納品スケジュールの確認です。来週金曜日で問題ないでしょうか。",ham
+"チームビルディングイベントの参加確認をお願いします。",ham
+"コードレビューのフィードバックを反映しました。再確認お願いします。",ham
+"Congratulations! You've won a $1000 gift card! Click here to claim now!",spam
+"URGENT: Your account will be suspended. Verify your identity immediately!",spam
+"Buy cheap Viagra and Cialis online! No prescription needed! Best prices!",spam
+"You are the lucky winner of our international lottery! Send your details.",spam
+"Limited time offer! Get rich quick with this amazing investment opportunity!",spam
+"FREE iPhone 15! Just complete this short survey to claim your prize!",spam
+"Your PayPal account has been compromised. Click here to secure it now.",spam
+"Make $5000/week working from home! No experience required! Act now!",spam
+"Hot singles in your area want to meet you! Click here!",spam
+"Exclusive deal: 90% off luxury watches! Order today! Free shipping!",spam
+"Nigerian prince needs your help transferring $10 million. Share bank details.",spam
+"Lose 20 pounds in 7 days with this miracle pill! Buy now!",spam
+"Your computer is infected! Download our antivirus software immediately!",spam
+"Casino bonus: Get $500 free chips! Play and win big today!",spam
+"Act now! This secret method doubles your income overnight! Limited spots!",spam
+"今すぐクリック！100万円が当たるチャンス！無料登録はこちら！",spam
+"緊急：アカウントが不正アクセスされました。今すぐ確認してください。",spam
+"激安ブランド品！最大90%オフ！送料無料！今すぐ購入！",spam
+"おめでとうございます！抽選に当選しました！賞金を受け取るにはこちら。",spam
+"副業で月収50万円！誰でも簡単に稼げる方法を公開中！",spam
+"未承認の取引が検出されました。カード情報を再入力してください。",spam
+"ダイエットサプリ！飲むだけで10kg減！今なら半額！",spam
+"出会い系サイト：近くの異性があなたを待っています！無料登録！",spam
+"ローン審査不要！即日融資！ブラックOK！今すぐ申し込み！",spam
+"投資で確実に儲かる！元本保証！年利300%！詳細はこちら！",spam

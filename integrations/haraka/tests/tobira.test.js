@@ -66,8 +66,12 @@ describe("tobira haraka plugin", () => {
       assert.ok(ctx.client);
       assert.equal(ctx.threshold, 0.5);
       assert.equal(ctx.rejectSpam, true);
-      assert.equal(ctx.register_hook.mock.calls.length, 1);
+      assert.equal(ctx.register_hook.mock.calls.length, 2);
       assert.deepEqual(ctx.register_hook.mock.calls[0].arguments, [
+        "mail",
+        "enable_body_parse",
+      ]);
+      assert.deepEqual(ctx.register_hook.mock.calls[1].arguments, [
         "data_post",
         "check_spam",
       ]);
@@ -88,6 +92,17 @@ describe("tobira haraka plugin", () => {
       assert.equal(ctx.client.timeout, 5000);
       assert.equal(ctx.threshold, 0.5);
       assert.equal(ctx.rejectSpam, true);
+    });
+  });
+
+  describe("enable_body_parse", () => {
+    it("should set parse_body to true on transaction", (_, done) => {
+      const connection = { transaction: { parse_body: false } };
+      plugin.enable_body_parse.call({}, (action) => {
+        assert.equal(action, undefined);
+        assert.equal(connection.transaction.parse_body, true);
+        done();
+      }, connection);
     });
   });
 
