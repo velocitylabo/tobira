@@ -75,6 +75,10 @@ def build_parser() -> argparse.ArgumentParser:
 
     register_tenant(subparsers)
 
+    from tobira.cli.audit_log import register as register_audit_log
+
+    register_audit_log(subparsers)
+
     return parser
 
 

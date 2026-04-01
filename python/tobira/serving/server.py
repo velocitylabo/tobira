@@ -52,6 +52,8 @@ def create_app(
     tenant_registry: Optional[Any] = None,
     tracing: Optional[dict[str, Any]] = None,
     structured_logging: Optional[dict[str, Any]] = None,
+    rbac: Optional[dict[str, Any]] = None,
+    audit: Optional[dict[str, Any]] = None,
 ) -> Any:
     """Create a FastAPI application with the given backend.
 
@@ -110,6 +112,14 @@ def create_app(
         structured_logging: Optional structured logging configuration.
             When ``{"enabled": true}`` is set, logs are output in
             structured JSON format with trace context correlation.
+        rbac: Optional RBAC configuration dict.
+            When ``{"enabled": true}`` is set, role-based access control
+            is enforced using API keys with associated roles and
+            permissions. Overrides the simple ``api_key`` auth when active.
+        audit: Optional audit logging configuration dict.
+            When ``{"enabled": true}`` is set, all API operations are
+            recorded as structured audit events. Accepts optional
+            ``log_path`` and ``retention_days`` keys.
 
     Returns:
         A FastAPI application.
@@ -161,9 +171,20 @@ def create_app(
 
     from tobira.serving.auth import get_api_key
 
+    # --- RBAC / Auth setup ---
+    rbac_config = None
+    if rbac and rbac.get("enabled"):
+        from tobira.serving.rbac import load_rbac_config
+
+        rbac_config = load_rbac_config(rbac)
+
     api_key = get_api_key(serving)
     auth_deps: list[Any] = []
-    if api_key:
+    if rbac_config and rbac_config.enabled and rbac_config.api_keys:
+        from tobira.serving.auth import create_rbac_auth_dependency
+
+        auth_deps = [fastapi.Depends(create_rbac_auth_dependency(rbac_config))]
+    elif api_key:
         from tobira.serving.auth import create_auth_dependency
 
         auth_deps = [fastapi.Depends(create_auth_dependency(api_key))]
@@ -185,6 +206,14 @@ def create_app(
         ),
     ) -> Optional[str]:
         return tenant_id
+
+    # --- Audit logging setup ---
+    audit_logger = None
+    if audit and audit.get("enabled"):
+        from tobira.serving.audit import create_audit_logger, load_audit_config
+
+        audit_cfg = load_audit_config(audit)
+        audit_logger = create_audit_logger(audit_cfg)
 
     readiness = ReadinessState()
 
@@ -229,6 +258,11 @@ def create_app(
 
         ab_router = create_ab_router(ab_test)
     app.state.ab_router = ab_router
+
+    if audit_logger is not None:
+        from tobira.serving.audit import AuditMiddleware
+
+        app.add_middleware(AuditMiddleware, audit_logger=audit_logger)
 
     if monitoring and monitoring.get("enabled"):
         from tobira.monitoring.collector import PredictionCollector
@@ -671,6 +705,8 @@ def main(config_path: str, host: str = "127.0.0.1", port: int = 8000) -> None:
     metrics_config = config.get("metrics")
     tracing_config = config.get("tracing")
     logging_config = config.get("logging")
+    rbac_config = config.get("rbac")
+    audit_config = config.get("audit")
 
     # Multi-tenant setup
     registry = None
@@ -697,6 +733,8 @@ def main(config_path: str, host: str = "127.0.0.1", port: int = 8000) -> None:
         tenant_registry=registry,
         tracing=tracing_config,
         structured_logging=logging_config,
+        rbac=rbac_config,
+        audit=audit_config,
     )
 
     ha_config = config.get("ha", {})
