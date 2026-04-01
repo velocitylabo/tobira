@@ -50,6 +50,8 @@ def create_app(
     serving: Optional[dict[str, Any]] = None,
     metrics: Optional[dict[str, Any]] = None,
     tenant_registry: Optional[Any] = None,
+    tracing: Optional[dict[str, Any]] = None,
+    structured_logging: Optional[dict[str, Any]] = None,
 ) -> Any:
     """Create a FastAPI application with the given backend.
 
@@ -102,6 +104,12 @@ def create_app(
             When provided, multi-tenant mode is enabled: requests must
             include an ``X-Tobira-Tenant`` header to select the tenant,
             and each tenant uses its own backend and isolated data stores.
+        tracing: Optional tracing configuration dict.
+            When ``{"enabled": true}`` is set, OpenTelemetry tracing
+            is enabled for HTTP requests and backend predict calls.
+        structured_logging: Optional structured logging configuration.
+            When ``{"enabled": true}`` is set, logs are output in
+            structured JSON format with trace context correlation.
 
     Returns:
         A FastAPI application.
@@ -137,6 +145,19 @@ def create_app(
         telemetry_enabled = tel_cfg.enabled
         if tel_cfg.enabled:
             telemetry_collector = TelemetryCollector(tel_cfg)
+
+    tracer = None
+    if structured_logging and structured_logging.get("enabled"):
+        from tobira.tracing import StructuredLoggingConfig, setup_structured_logging
+
+        sl_cfg = StructuredLoggingConfig.from_dict(structured_logging)
+        setup_structured_logging(sl_cfg)
+
+    if tracing and tracing.get("enabled"):
+        from tobira.tracing import TracingConfig, setup_tracing
+
+        tr_cfg = TracingConfig.from_dict(tracing)
+        tracer = setup_tracing(tr_cfg)
 
     from tobira.serving.auth import get_api_key
 
@@ -243,6 +264,12 @@ def create_app(
             app.add_api_route(
                 "/metrics", metrics_handler, methods=["GET"], tags=["metrics"],
             )
+
+    if tracer is not None:
+        from tobira.tracing import TracingMiddleware
+
+        app.add_middleware(TracingMiddleware, tracer=tracer)
+    app.state.tracer = tracer
 
     # --- Versioned router (v1) ---
     v1_router = fastapi.APIRouter(prefix="/v1", tags=["v1"])
@@ -421,6 +448,13 @@ def create_app(
 
         if app.state.ab_router is not None:
             result, variant_name = app.state.ab_router.predict(req.text)
+        elif app.state.tracer is not None:
+            from tobira.tracing import traced_predict
+
+            result = traced_predict(
+                app.state.backend, req.text, app.state.tracer,
+                **explain_kwargs,
+            )
         else:
             try:
                 result = current_backend.predict(req.text, **explain_kwargs)
@@ -635,6 +669,8 @@ def main(config_path: str, host: str = "127.0.0.1", port: int = 8000) -> None:
     telemetry_config = config.get("telemetry")
     serving_config = config.get("serving")
     metrics_config = config.get("metrics")
+    tracing_config = config.get("tracing")
+    logging_config = config.get("logging")
 
     # Multi-tenant setup
     registry = None
@@ -659,6 +695,8 @@ def main(config_path: str, host: str = "127.0.0.1", port: int = 8000) -> None:
         serving=serving_config,
         metrics=metrics_config,
         tenant_registry=registry,
+        tracing=tracing_config,
+        structured_logging=logging_config,
     )
 
     ha_config = config.get("ha", {})
@@ -672,4 +710,10 @@ def main(config_path: str, host: str = "127.0.0.1", port: int = 8000) -> None:
     )
     shutdown.install()
 
-    uvicorn.run(app, host=host, port=port, access_log=False)
+    try:
+        uvicorn.run(app, host=host, port=port, access_log=False)
+    finally:
+        if tracing_config and tracing_config.get("enabled"):
+            from tobira.tracing import shutdown_tracing
+
+            shutdown_tracing()

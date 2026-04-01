@@ -1,0 +1,98 @@
+{
+  "annotations": {
+    "list": []
+  },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 1,
+  "id": null,
+  "links": [],
+  "panels": [
+    {
+      "title": "Backend Predict Duration by Type",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 },
+      "datasource": { "type": "jaeger", "uid": "jaeger" },
+      "targets": [
+        {
+          "queryType": "search",
+          "service": "tobira",
+          "operation": "backend.predict",
+          "tags": "tobira.backend"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ms"
+        },
+        "overrides": []
+      }
+    },
+    {
+      "title": "Prediction Label Distribution",
+      "type": "piechart",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 0 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        {
+          "expr": "sum by (tobira_label) (increase(http_server_request_count_total{service_name=\"tobira\",http_target=~\".*/predict\"}[1h]))",
+          "legendFormat": "{{tobira_label}}"
+        }
+      ]
+    },
+    {
+      "title": "Backend Error Traces",
+      "type": "table",
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 8 },
+      "datasource": { "type": "jaeger", "uid": "jaeger" },
+      "targets": [
+        {
+          "queryType": "search",
+          "service": "tobira",
+          "operation": "backend.predict",
+          "tags": "error=true",
+          "limit": 20
+        }
+      ]
+    },
+    {
+      "title": "Text Length Distribution",
+      "type": "histogram",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 16 },
+      "datasource": { "type": "jaeger", "uid": "jaeger" },
+      "targets": [
+        {
+          "queryType": "search",
+          "service": "tobira",
+          "operation": "backend.predict",
+          "tags": "tobira.text_length"
+        }
+      ]
+    },
+    {
+      "title": "Prediction Score Distribution",
+      "type": "histogram",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 16 },
+      "datasource": { "type": "jaeger", "uid": "jaeger" },
+      "targets": [
+        {
+          "queryType": "search",
+          "service": "tobira",
+          "operation": "backend.predict",
+          "tags": "tobira.score"
+        }
+      ]
+    }
+  ],
+  "schemaVersion": 39,
+  "tags": ["tobira", "backends"],
+  "templating": {
+    "list": []
+  },
+  "time": {
+    "from": "now-1h",
+    "to": "now"
+  },
+  "title": "Tobira - Backend Comparison",
+  "uid": "tobira-backends"
+}

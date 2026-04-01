@@ -3808,6 +3808,11 @@ serving = [
     { name = "uvicorn", version = "0.39.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.10'" },
     { name = "uvicorn", version = "0.41.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.10'" },
 ]
+tracing = [
+    { name = "opentelemetry-api" },
+    { name = "opentelemetry-exporter-otlp-proto-http" },
+    { name = "opentelemetry-sdk" },
+]
 
 [package.dev-dependencies]
 dev = [
@@ -3816,7 +3821,7 @@ dev = [
     { name = "pytest", version = "8.4.2", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.10'" },
     { name = "pytest", version = "9.0.2", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.10'" },
     { name = "pytest-cov" },
-    { name = "tobira", extra = ["bert", "evaluation", "fasttext", "hub", "llm", "metrics", "multilingual", "onnx", "redis", "serving"] },
+    { name = "tobira", extra = ["bert", "evaluation", "fasttext", "hub", "llm", "metrics", "multilingual", "onnx", "redis", "serving", "tracing"] },
 ]
 
 [package.metadata]
@@ -3829,9 +3834,12 @@ requires-dist = [
     { name = "matplotlib", marker = "extra == 'evaluation'", specifier = ">=3.5" },
     { name = "onnxruntime", marker = "extra == 'onnx'", specifier = ">=1.16" },
     { name = "opentelemetry-api", marker = "extra == 'metrics'", specifier = ">=1.20" },
+    { name = "opentelemetry-api", marker = "extra == 'tracing'", specifier = ">=1.20" },
     { name = "opentelemetry-exporter-otlp-proto-http", marker = "extra == 'metrics'", specifier = ">=1.20" },
+    { name = "opentelemetry-exporter-otlp-proto-http", marker = "extra == 'tracing'", specifier = ">=1.20" },
     { name = "opentelemetry-exporter-prometheus", marker = "extra == 'metrics'", specifier = ">=0.41b0" },
     { name = "opentelemetry-sdk", marker = "extra == 'metrics'", specifier = ">=1.20" },
+    { name = "opentelemetry-sdk", marker = "extra == 'tracing'", specifier = ">=1.20" },
     { name = "optimum", marker = "extra == 'onnx'", specifier = ">=1.13" },
     { name = "psycopg", extras = ["binary"], marker = "extra == 'postgres'", specifier = ">=3.1" },
     { name = "psycopg-pool", marker = "extra == 'postgres'", specifier = ">=3.1" },
@@ -3844,7 +3852,7 @@ requires-dist = [
     { name = "transformers", marker = "extra == 'onnx'", specifier = ">=4.30" },
     { name = "uvicorn", marker = "extra == 'serving'", specifier = ">=0.20" },
 ]
-provides-extras = ["fasttext", "bert", "serving", "evaluation", "onnx", "llm", "redis", "multilingual", "hub", "milter", "postgres", "metrics"]
+provides-extras = ["fasttext", "bert", "serving", "evaluation", "onnx", "llm", "redis", "multilingual", "hub", "milter", "postgres", "metrics", "tracing"]
 
 [package.metadata.requires-dev]
 dev = [
@@ -3852,7 +3860,7 @@ dev = [
     { name = "mypy", specifier = ">=1.10" },
     { name = "pytest", specifier = ">=8.0" },
     { name = "pytest-cov", specifier = ">=6.0" },
-    { name = "tobira", extras = ["fasttext", "bert", "serving", "evaluation", "onnx", "llm", "redis", "multilingual", "hub", "metrics"] },
+    { name = "tobira", extras = ["fasttext", "bert", "serving", "evaluation", "onnx", "llm", "redis", "multilingual", "hub", "metrics", "tracing"] },
 ]
 
 [[package]]
