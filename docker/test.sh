@@ -82,10 +82,12 @@ if $api_ok; then
 
   if [ -n "$ham_resp" ]; then
     ham_label=$(json_field "$ham_resp" "label")
-    if [ "$ham_label" = "ham" ]; then
-      ok "/v1/predict ham: $ham_resp"
+    ham_score=$(json_field "$ham_resp" "score")
+    ham_score_ok=$(python3 -c "print('yes' if float('${ham_score}') > 0.5 else 'no')" 2>/dev/null)
+    if [ "$ham_label" = "ham" ] && [ "$ham_score_ok" = "yes" ]; then
+      ok "/v1/predict ham (label=$ham_label, score=$ham_score): $ham_resp"
     else
-      ng "/v1/predict ham: expected ham, got $ham_label ($ham_resp)"
+      ng "/v1/predict ham: expected label=ham with score>0.5, got label=$ham_label score=$ham_score ($ham_resp)"
     fi
   else
     ng "/v1/predict ham: no response from API"
@@ -98,10 +100,12 @@ if $api_ok; then
 
   if [ -n "$spam_resp" ]; then
     spam_label=$(json_field "$spam_resp" "label")
-    if [ "$spam_label" = "spam" ]; then
-      ok "/v1/predict spam: $spam_resp"
+    spam_score=$(json_field "$spam_resp" "score")
+    spam_score_ok=$(python3 -c "print('yes' if float('${spam_score}') > 0.5 else 'no')" 2>/dev/null)
+    if [ "$spam_label" = "spam" ] && [ "$spam_score_ok" = "yes" ]; then
+      ok "/v1/predict spam (label=$spam_label, score=$spam_score): $spam_resp"
     else
-      ng "/v1/predict spam: expected spam, got $spam_label ($spam_resp)"
+      ng "/v1/predict spam: expected label=spam with score>0.5, got label=$spam_label score=$spam_score ($spam_resp)"
     fi
   else
     ng "/v1/predict spam: no response from API"
@@ -210,8 +214,8 @@ Hello, this is a perfectly normal business email about our quarterly review."
   rspamd_ham=$(echo "$rspamd_ham_msg" | curl -sf --max-time 10 -X POST http://localhost:11333/checkv2 \
     --data-binary @- 2>&1) || rspamd_ham=""
 
-  if [ -n "$rspamd_ham" ] && echo "$rspamd_ham" | grep -q "TOBIRA"; then
-    ok "ham scan returned TOBIRA symbol"
+  if [ -n "$rspamd_ham" ] && echo "$rspamd_ham" | grep -q "TOBIRA_HAM"; then
+    ok "ham scan returned TOBIRA_HAM symbol"
   elif [ -n "$rspamd_ham" ]; then
     warn "ham scan: no TOBIRA symbol found (plugin may not be loaded yet)"
   else
@@ -229,8 +233,8 @@ Buy now! Free offer! Click here for your lottery winner prize! Act now! Urgent d
   rspamd_spam=$(echo "$rspamd_spam_msg" | curl -sf --max-time 10 -X POST http://localhost:11333/checkv2 \
     --data-binary @- 2>&1) || rspamd_spam=""
 
-  if [ -n "$rspamd_spam" ] && echo "$rspamd_spam" | grep -q "TOBIRA_SPAM"; then
-    ok "spam scan returned TOBIRA_SPAM symbol"
+  if [ -n "$rspamd_spam" ] && echo "$rspamd_spam" | grep -q "TOBIRA_SPAM_HIGH\|TOBIRA_SPAM_MED\|TOBIRA_SPAM_LOW"; then
+    ok "spam scan returned TOBIRA_SPAM level symbol"
   elif [ -n "$rspamd_spam" ]; then
     warn "spam scan: no TOBIRA_SPAM symbol found"
   else
@@ -265,8 +269,8 @@ From: test@example.com
 
 Hello, this is a normal email." | docker exec -i "$sa_container" spamc -R 2>&1) || spamc_result=""
 
-    if [ -n "$spamc_result" ] && echo "$spamc_result" | grep -q "TOBIRA"; then
-      ok "spamc ham check returned TOBIRA rule"
+    if [ -n "$spamc_result" ] && echo "$spamc_result" | grep -q "TOBIRA_HAM"; then
+      ok "spamc ham check returned TOBIRA_HAM rule"
     elif [ -n "$spamc_result" ]; then
       warn "spamc responded but no TOBIRA rule found"
     else
@@ -279,8 +283,8 @@ From: spammer@example.com
 
 Buy now! Free offer! Click here for your lottery winner prize! Act now! Urgent discount casino!" | docker exec -i "$sa_container" spamc -R 2>&1) || spamc_spam=""
 
-    if [ -n "$spamc_spam" ] && echo "$spamc_spam" | grep -q "TOBIRA_SPAM"; then
-      ok "spamc spam check found TOBIRA_SPAM"
+    if [ -n "$spamc_spam" ] && echo "$spamc_spam" | grep -q "TOBIRA_SPAM_HIGH\|TOBIRA_SPAM_MED\|TOBIRA_SPAM_LOW"; then
+      ok "spamc spam check found TOBIRA_SPAM level rule"
     elif [ -n "$spamc_spam" ]; then
       warn "spamc spam check: no TOBIRA_SPAM rule found"
     else
