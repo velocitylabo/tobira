@@ -11,6 +11,9 @@ tobira provides plugins for the most popular mail transfer agents. Each plugin q
 | [Haraka](haraka.md) | Node.js | Low | Stable |
 | [Postfix milter](postfix-milter.md) | Python | Medium | Stable |
 
+!!! tip "Already using rspamd GPT?"
+    If you're running rspamd's GPT module with Ollama, tobira can fine-tune a custom model for higher accuracy with minimal changes. See the [rspamd GPT Migration Guide](../handson/rspamd-gpt-migration.md).
+
 ## How It Works
 
 All MTA plugins follow the same pattern:

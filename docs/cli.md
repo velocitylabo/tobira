@@ -69,19 +69,61 @@ Starts the API server, MTA plugins, and monitoring stack for interactive evaluat
 
 ### `tobira train`
 
-Fine-tune a BERT/DeBERTa model on labeled email data.
+Fine-tune a model on labeled email data. Supports two model types:
+
+- **classifier** (default): BERT/DeBERTa encoder model → ONNX export
+- **causal_lm**: Causal LM with LoRA → GGUF export for Ollama
+
+#### Classifier mode (default)
 
 ```bash
 tobira train --config CONFIG --data DATA --output OUTPUT
 ```
 
-| Option | Description |
-|--------|-------------|
-| `--config` | Configuration file path |
-| `--data` | Labeled data file (CSV or JSONL) |
-| `--output` | Output directory for trained model |
+#### Causal LM mode (for GGUF/Ollama)
 
-Supports automatic train/val/test split, ONNX export, and training metrics persistence.
+```bash
+tobira train --config CONFIG --data DATA --output OUTPUT \
+  --model-type causal_lm
+```
+
+This runs: LoRA fine-tuning → weight merging → GGUF export → Ollama Modelfile generation.
+
+| Option | Default | Description |
+|--------|---------|-------------|
+| `--config` | — | Configuration file path (must contain `[training]` section) |
+| `--data` | — | Labeled data file (CSV or JSONL with `text`, `label` columns) |
+| `--output` | — | Output directory for trained model |
+| `--model-type` | `classifier` | `classifier` (BERT) or `causal_lm` (LoRA → GGUF) |
+| `--skip-export` | `false` | Skip ONNX export (classifier) or GGUF export (causal_lm) |
+| `--export-gguf` | `false` | Export to GGUF format (also works in classifier mode) |
+| `--gguf-quant-type` | `q8_0` | GGUF quantization: `f32`, `f16`, `bf16`, `q8_0`, `q4_0`, `q4_1`, `q5_0`, `q5_1`, `auto` |
+| `--split-ratio` | `0.8,0.1,0.1` | Train/val/test split ratio |
+
+#### Training config (`[training]` section in TOML)
+
+**Common options:**
+
+| Key | Default | Description |
+|-----|---------|-------------|
+| `model_name` | `bert-base-uncased` / `TinyLlama/...` | HuggingFace model name |
+| `epochs` | `3` | Number of training epochs |
+| `batch_size` | `16` (classifier) / `4` (causal_lm) | Training batch size |
+| `learning_rate` | `5e-5` (classifier) / `2e-4` (causal_lm) | Peak learning rate |
+| `max_length` | `512` | Maximum token sequence length |
+| `device` | auto | `cpu` or `cuda` |
+| `label_names` | `["ham", "spam"]` | Classification label names |
+
+**Causal LM (LoRA) options:**
+
+| Key | Default | Description |
+|-----|---------|-------------|
+| `lora_r` | `16` | LoRA rank |
+| `lora_alpha` | `32` | LoRA scaling factor |
+| `lora_dropout` | `0.05` | LoRA dropout probability |
+| `lora_target_modules` | auto-detect | Modules to apply LoRA to |
+
+See the [GGUF Hands-on Guide](handson/gguf-ollama.md) for a complete walkthrough.
 
 ### `tobira evaluate`
 

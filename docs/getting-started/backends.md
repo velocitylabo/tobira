@@ -43,6 +43,7 @@ The BERT/ONNX backends accept any HuggingFace model name via the `model_name` co
 | **ONNX** | ~110 MB (quantized) | ~30 ms | CPU only | High |
 | **BERT/DeBERTa** | ~340-440 MB | ~200 ms | GPU recommended | High |
 | **Ollama** | 1-70 GB | ~500 ms (GPU) | GPU recommended | High |
+| **Ollama + GGUF** | 0.5-4 GB | ~500 ms (GPU) | GPU recommended | High (fine-tuned) |
 | **LLM API** | Remote | ~300 ms | Network | Highest |
 | **Ensemble** | Varies | Varies | Varies | Highest |
 | **Two-Stage** | Combined | ~1-30 ms | CPU | High |
@@ -98,6 +99,36 @@ timeout = 30
 ```
 
 **When to use**: When you want LLM-level understanding without external API calls.
+
+### Ollama + Custom GGUF Model (recommended for production)
+
+tobira can fine-tune a causal LM on your email data and export it as a GGUF model for Ollama. This gives you **LLM-level understanding with your own data** — significantly higher accuracy than generic LLMs.
+
+```bash
+# Fine-tune and export to GGUF in one command
+tobira train --config config.toml --data spam.csv --output ./model \
+  --model-type causal_lm
+
+# Register with Ollama
+ollama create tobira-spam -f ./model/Modelfile
+```
+
+Then use it as a backend:
+
+```toml
+[backend]
+type = "ollama"
+model = "tobira-spam"
+base_url = "http://localhost:11434"
+```
+
+This is also a **drop-in replacement for rspamd GPT** — just change the model name in `/etc/rspamd/local.d/gpt.conf`:
+
+```
+model = "tobira-spam";
+```
+
+**When to use**: rspamd GPT + Ollama environments where you want higher accuracy from a model trained on your own data. See the [GGUF Hands-on Guide](../handson/gguf-ollama.md) for a complete walkthrough.
 
 ## LLM API
 

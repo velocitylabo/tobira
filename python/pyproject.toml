@@ -74,6 +74,12 @@ multilingual = [
 hub = [
     "huggingface_hub>=0.20",
 ]
+gguf = [
+    "torch>=2.0",
+    "transformers>=4.30",
+    "peft>=0.7",
+    "gguf>=0.6",
+]
 milter = [
     "pymilter>=1.0.4",
 ]
@@ -149,6 +155,10 @@ module = [
     "langdetect.*",
     "huggingface_hub",
     "huggingface_hub.*",
+    "peft",
+    "peft.*",
+    "gguf",
+    "gguf.*",
     "Milter",
     "Milter.*",
     "psycopg",

@@ -111,3 +111,7 @@ curl -X POST http://127.0.0.1:8000/predict \
   -H "Content-Type: application/json" \
   -d '{"text": "Test email content"}'
 ```
+
+## Upgrading from rspamd GPT
+
+If you're already using rspamd's GPT module (`gpt.lua`) with Ollama, tobira can fine-tune a custom model on your email data for significantly higher accuracy. See the [rspamd GPT Migration Guide](../handson/rspamd-gpt-migration.md) for a step-by-step walkthrough.

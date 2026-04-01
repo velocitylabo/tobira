@@ -64,6 +64,8 @@ nav:
   - Hands-on:
       - FastText Backend: handson/fasttext.md
       - CLI Workflow: handson/cli.md
+      - GGUF + Ollama: handson/gguf-ollama.md
+      - rspamd GPT Migration: handson/rspamd-gpt-migration.md
   - Deployment Guide: getting-started/phased-rollout.md
   - Pricing: pricing.md
   - Roadmap: roadmap.md

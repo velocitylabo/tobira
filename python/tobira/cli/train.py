@@ -28,9 +28,9 @@ def register(subparsers: "argparse._SubParsersAction[Any]") -> None:
     """
     parser = subparsers.add_parser(
         "train",
-        help="Run fine-tuning pipeline (train → evaluate → ONNX export)",
+        help="Run fine-tuning pipeline (train → evaluate → export)",
         description="Execute the full training pipeline: data preparation, "
-        "fine-tuning, evaluation, and optional ONNX export.",
+        "fine-tuning, evaluation, and optional ONNX/GGUF export.",
     )
     parser.add_argument(
         "--config",
@@ -49,10 +49,30 @@ def register(subparsers: "argparse._SubParsersAction[Any]") -> None:
         help="Directory to save the trained model and artifacts.",
     )
     parser.add_argument(
+        "--model-type",
+        choices=["classifier", "causal_lm"],
+        default="classifier",
+        help="Model type: 'classifier' (BERT, default) or 'causal_lm' "
+        "(causal LM with LoRA for GGUF/Ollama export).",
+    )
+    parser.add_argument(
         "--skip-export",
         action="store_true",
         default=False,
-        help="Skip ONNX export after training.",
+        help="Skip ONNX export after training (classifier mode).",
+    )
+    parser.add_argument(
+        "--export-gguf",
+        action="store_true",
+        default=False,
+        help="Export model to GGUF format and generate Ollama Modelfile. "
+        "Automatically enabled for causal_lm model type.",
+    )
+    parser.add_argument(
+        "--gguf-quant-type",
+        default="q8_0",
+        help="GGUF quantization type (default: q8_0). "
+        "Options: f32, f16, bf16, q8_0, q4_0, q4_1, q5_0, q5_1, auto.",
     )
     parser.add_argument(
         "--split-ratio",
@@ -275,6 +295,29 @@ def _run(args: argparse.Namespace) -> int:
             return 1
         print("Preprocessing complete.")
 
+    output_dir = Path(args.output)
+
+    # Dispatch based on model type
+    if args.model_type == "causal_lm":
+        model_name = training_config.get("model_name")
+        return _run_causal_lm(args, training_config, train_data, output_dir, model_name)
+
+    model_name = training_config.get("model_name", "bert-base-uncased")
+
+    return _run_classifier(
+        args, training_config, train_data, test_data, output_dir, model_name
+    )
+
+
+def _run_classifier(
+    args: argparse.Namespace,
+    training_config: dict[str, Any],
+    train_data: list[dict[str, str]],
+    test_data: list[dict[str, str]],
+    output_dir: Path,
+    model_name: str,
+) -> int:
+    """Run the BERT classifier training pipeline."""
     # Step 2: Fine-tuning
     try:
         from tobira.core.trainer import (
@@ -288,14 +331,12 @@ def _run(args: argparse.Namespace) -> int:
             format_cli_error(
                 BACKEND_IMPORT_ERROR,
                 "core.trainer module not available.",
-                hint="Install required dependencies: pip install tobira[training]",
+                hint="Install required dependencies: pip install tobira[bert]",
             ),
             file=sys.stderr,
         )
         return 1
 
-    output_dir = Path(args.output)
-    model_name = training_config.get("model_name", "bert-base-uncased")
     train_config = TrainingConfig(
         model_name=model_name,
         epochs=training_config.get("epochs", 3),
@@ -383,6 +424,10 @@ def _run(args: argparse.Namespace) -> int:
     else:
         print("ONNX export skipped (--skip-export).")
 
+    # Optional GGUF export (for classifier models, only if explicitly requested)
+    if args.export_gguf:
+        _run_gguf_export(output_dir, args.gguf_quant_type, model_name)
+
     # Summary
     print()
     print("Training pipeline complete!")
@@ -390,3 +435,126 @@ def _run(args: argparse.Namespace) -> int:
     print(f"  Output: {output_dir}")
 
     return 0
+
+
+def _run_causal_lm(
+    args: argparse.Namespace,
+    training_config: dict[str, Any],
+    train_data: list[dict[str, str]],
+    output_dir: Path,
+    model_name: str | None,
+) -> int:
+    """Run the causal LM (LoRA) training pipeline with GGUF export."""
+    try:
+        from tobira.core.causal_trainer import (
+            CausalTrainingConfig,
+            train_causal,
+        )
+    except ImportError:
+        from tobira.errors import BACKEND_IMPORT_ERROR
+
+        print(
+            format_cli_error(
+                BACKEND_IMPORT_ERROR,
+                "causal_trainer module not available.",
+                hint="Install required dependencies: pip install tobira[gguf]",
+            ),
+            file=sys.stderr,
+        )
+        return 1
+
+    # Default model for causal LM if not explicitly set in config
+    if model_name is None:
+        model_name = "TinyLlama/TinyLlama-1.1B-Chat-v1.0"
+
+    # Use val+test portions from --split-ratio as eval_split for causal LM
+    _train_ratio, val_ratio, test_ratio = _parse_split_ratio(args.split_ratio)
+    eval_split = val_ratio + test_ratio
+
+    causal_config = CausalTrainingConfig(
+        model_name=model_name,
+        epochs=training_config.get("epochs", 3),
+        batch_size=training_config.get("batch_size", 4),
+        learning_rate=training_config.get("learning_rate", 2e-4),
+        max_length=training_config.get("max_length", 512),
+        device=training_config.get("device"),
+        label_names=training_config.get("label_names", ["ham", "spam"]),
+        lora_r=training_config.get("lora_r", 16),
+        lora_alpha=training_config.get("lora_alpha", 32),
+        lora_dropout=training_config.get("lora_dropout", 0.05),
+        lora_target_modules=training_config.get("lora_target_modules"),
+        eval_split=eval_split,
+    )
+
+    print(f"Starting causal LM fine-tuning (LoRA): {model_name}")
+    print(f"  Epochs:     {causal_config.epochs}")
+    print(f"  Batch size: {causal_config.batch_size}")
+    print(f"  LoRA r:     {causal_config.lora_r}")
+
+    try:
+        result = train_causal(
+            data=train_data,
+            output_path=str(output_dir),
+            config=causal_config,
+        )
+    except (ImportError, RuntimeError, ValueError) as exc:
+        from tobira.errors import BACKEND_INFERENCE_FAILED
+
+        print(
+            format_cli_error(BACKEND_INFERENCE_FAILED, f"Training failed: {exc}"),
+            file=sys.stderr,
+        )
+        return 1
+
+    print(f"Training complete: {result.output_path}")
+
+    # GGUF export (default for causal_lm unless --skip-export)
+    if not args.skip_export:
+        _run_gguf_export(output_dir, args.gguf_quant_type, model_name)
+
+    # Summary
+    print()
+    print("Causal LM training pipeline complete!")
+    print(f"  Model: {model_name}")
+    print(f"  Output: {output_dir}")
+
+    return 0
+
+
+def _run_gguf_export(
+    output_dir: Path, quant_type: str, model_name: str
+) -> None:
+    """Run GGUF export and Modelfile generation."""
+    try:
+        from tobira.core.gguf_export import export_gguf, generate_modelfile
+    except ImportError:
+        print(
+            "Warning: GGUF export not available."
+            " Install with: pip install tobira[gguf]"
+        )
+        return
+
+    gguf_path = output_dir / f"model-{quant_type}.gguf"
+    print(f"Exporting to GGUF ({quant_type}): {gguf_path}")
+
+    try:
+        exported = export_gguf(
+            model_path=output_dir,
+            output_path=gguf_path,
+            quant_type=quant_type,
+        )
+        print(f"GGUF model saved: {exported}")
+
+        modelfile = generate_modelfile(
+            gguf_path=exported,
+            model_name=model_name,
+        )
+        print(f"Ollama Modelfile saved: {modelfile}")
+        print()
+        print("To register with Ollama:")
+        print(f"  ollama create tobira-spam -f {modelfile}")
+        print("Then use with rspamd GPT or tobira:")
+        print("  ollama run tobira-spam")
+    except (ImportError, RuntimeError) as exc:
+        print(f"Warning: GGUF export failed: {exc}")
+        print("Training artifacts are still available in the output directory.")
