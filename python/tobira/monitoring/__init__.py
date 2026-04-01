@@ -4,6 +4,9 @@ __all__ = [
     "DeploymentPhase",
     "EmailNotifier",
     "JsonlStore",
+    "MetricsConfig",
+    "MetricsInstruments",
+    "MetricsMiddleware",
     "NotificationConfig",
     "NotificationDispatcher",
     "PhaseAdvice",
@@ -22,12 +25,14 @@ __all__ = [
     "append_record",
     "check_retrain_needed",
     "create_dispatcher",
+    "create_metrics_endpoint",
     "create_store",
     "detect_drift",
     "load_notification_config",
     "load_retrain_config",
     "notify_analysis_results",
     "read_records",
+    "setup_metrics",
     "trigger_retrain",
 ]
 
@@ -88,4 +93,9 @@ def __getattr__(name: str):  # type: ignore[no-untyped-def]
         from tobira.monitoring.analyzer import notify_analysis_results
 
         return notify_analysis_results
+    if name in ("MetricsConfig", "MetricsInstruments", "MetricsMiddleware",
+                "create_metrics_endpoint", "setup_metrics"):
+        from tobira.monitoring import metrics
+
+        return getattr(metrics, name)
     raise AttributeError(f"module {__name__!r} has no attribute {name!r}")

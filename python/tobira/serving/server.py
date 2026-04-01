@@ -48,6 +48,7 @@ def create_app(
     active_learning: Optional[dict[str, Any]] = None,
     telemetry: Optional[dict[str, Any]] = None,
     serving: Optional[dict[str, Any]] = None,
+    metrics: Optional[dict[str, Any]] = None,
 ) -> Any:
     """Create a FastAPI application with the given backend.
 
@@ -90,6 +91,12 @@ def create_app(
             variable is present), Bearer token authentication is enforced
             on ``/predict``, ``/feedback``, and active-learning endpoints.
             Health endpoints remain unauthenticated.
+        metrics: Optional metrics configuration dict.
+            When ``{"enabled": true}`` is set, OpenTelemetry metrics are
+            collected for prediction requests and a Prometheus ``/metrics``
+            endpoint is registered.  Accepts optional
+            ``prometheus_enabled`` (bool), ``otlp_endpoint`` (str), and
+            ``otlp_protocol`` (str) keys.
 
     Returns:
         A FastAPI application.
@@ -193,6 +200,26 @@ def create_app(
             redis_key_prefix=redis_key_prefix,
             redis_window_seconds=redis_window,
         )
+
+    if metrics and metrics.get("enabled"):
+        from tobira.monitoring.metrics import (
+            MetricsConfig,
+            MetricsMiddleware,
+            create_metrics_endpoint,
+            setup_metrics,
+        )
+
+        metrics_cfg = MetricsConfig.from_dict(metrics)
+        instruments = setup_metrics(metrics_cfg)
+        app.state.metrics_instruments = instruments
+        app.add_middleware(MetricsMiddleware, instruments=instruments)
+
+        prom_reader = instruments._prometheus_reader
+        if metrics_cfg.prometheus_enabled and prom_reader is not None:
+            metrics_handler = create_metrics_endpoint(instruments)
+            app.add_api_route(
+                "/metrics", metrics_handler, methods=["GET"], tags=["metrics"],
+            )
 
     # --- Versioned router (v1) ---
     v1_router = fastapi.APIRouter(prefix="/v1", tags=["v1"])
@@ -538,6 +565,7 @@ def main(config_path: str, host: str = "127.0.0.1", port: int = 8000) -> None:
     active_learning_config = config.get("active_learning")
     telemetry_config = config.get("telemetry")
     serving_config = config.get("serving")
+    metrics_config = config.get("metrics")
 
     app = create_app(
         backend,
@@ -550,6 +578,7 @@ def main(config_path: str, host: str = "127.0.0.1", port: int = 8000) -> None:
         active_learning=active_learning_config,
         telemetry=telemetry_config,
         serving=serving_config,
+        metrics=metrics_config,
     )
 
     ha_config = config.get("ha", {})
