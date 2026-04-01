@@ -71,6 +71,10 @@ def build_parser() -> argparse.ArgumentParser:
 
     register_active_learning(subparsers)
 
+    from tobira.cli.tenant import register as register_tenant
+
+    register_tenant(subparsers)
+
     return parser
 
 

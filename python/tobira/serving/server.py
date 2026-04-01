@@ -49,6 +49,7 @@ def create_app(
     telemetry: Optional[dict[str, Any]] = None,
     serving: Optional[dict[str, Any]] = None,
     metrics: Optional[dict[str, Any]] = None,
+    tenant_registry: Optional[Any] = None,
 ) -> Any:
     """Create a FastAPI application with the given backend.
 
@@ -97,6 +98,10 @@ def create_app(
             endpoint is registered.  Accepts optional
             ``prometheus_enabled`` (bool), ``otlp_endpoint`` (str), and
             ``otlp_protocol`` (str) keys.
+        tenant_registry: Optional :class:`TenantRegistry` instance.
+            When provided, multi-tenant mode is enabled: requests must
+            include an ``X-Tobira-Tenant`` header to select the tenant,
+            and each tenant uses its own backend and isolated data stores.
 
     Returns:
         A FastAPI application.
@@ -141,6 +146,24 @@ def create_app(
         from tobira.serving.auth import create_auth_dependency
 
         auth_deps = [fastapi.Depends(create_auth_dependency(api_key))]
+
+    # Multi-tenant support: dependency that resolves tenant_id from header
+    _tenant_dep: Any = None
+    if tenant_registry is not None:
+        from tobira.serving.tenant import create_tenant_dependency
+
+        _tenant_dep = create_tenant_dependency(tenant_registry)
+        auth_deps.append(fastapi.Depends(_tenant_dep))
+
+    # Helper dependency: optional tenant_id from header (for endpoint DI)
+    _TENANT_HEADER_NAME = "X-Tobira-Tenant"
+
+    async def _get_optional_tenant_id(
+        tenant_id: str = fastapi.Header(
+            default=None, alias=_TENANT_HEADER_NAME,
+        ),
+    ) -> Optional[str]:
+        return tenant_id
 
     readiness = ReadinessState()
 
@@ -238,9 +261,18 @@ def create_app(
         @v1_protected.post(
             "/feedback", response_model=FeedbackResponse, tags=["feedback"]
         )
-        async def receive_feedback(req: FeedbackRequest) -> FeedbackResponse:
+        async def receive_feedback(
+            req: FeedbackRequest,
+            tenant_id: Optional[str] = fastapi.Depends(_get_optional_tenant_id),
+        ) -> FeedbackResponse:
+            path = feedback_path
+            if tenant_registry is not None and tenant_id:
+                from pathlib import Path as _Path
+
+                base = _Path(feedback_path).parent
+                path = str(base / f"feedback_{tenant_id}.jsonl")
             record = store_feedback(
-                req.text, req.label, req.source, path=feedback_path
+                req.text, req.label, req.source, path=path
             )
             return FeedbackResponse(status="accepted", id=record.id)
 
@@ -361,7 +393,10 @@ def create_app(
         responses={503: {"model": ErrorResponse}},
         tags=["prediction"],
     )
-    async def predict(req: PredictRequest) -> PredictResponse:
+    async def predict(
+        req: PredictRequest,
+        tenant_id: Optional[str] = fastapi.Depends(_get_optional_tenant_id),
+    ) -> PredictResponse:
         if not readiness.ready:
             raise fastapi.HTTPException(
                 status_code=503,
@@ -377,14 +412,21 @@ def create_app(
         if req.explain:
             explain_kwargs["explain"] = True
 
+        # Resolve backend: tenant-specific or default
+        current_backend = app.state.backend
+        if tenant_registry is not None and tenant_id:
+            tenant_backend = tenant_registry.get_backend(tenant_id)
+            if tenant_backend is not None:
+                current_backend = tenant_backend
+
         if app.state.ab_router is not None:
             result, variant_name = app.state.ab_router.predict(req.text)
         else:
             try:
-                result = app.state.backend.predict(req.text, **explain_kwargs)
+                result = current_backend.predict(req.text, **explain_kwargs)
             except TypeError:
                 # Backend does not support explain parameter
-                result = app.state.backend.predict(req.text)
+                result = current_backend.predict(req.text)
 
         header_score: Optional[float] = None
         final_score = result.score
@@ -457,6 +499,10 @@ def create_app(
                 for a in result.explanations
             ]
 
+        tenant_name: Optional[str] = None
+        if tenant_registry is not None:
+            tenant_name = tenant_id
+
         return PredictResponse(
             label=final_label,
             score=final_score,
@@ -466,6 +512,7 @@ def create_app(
             ai_generated=ai_generated,
             explanations=explanations_info,
             model_version=variant_name,
+            tenant=tenant_name,
         )
 
     @v1_router.get(
@@ -504,6 +551,28 @@ def create_app(
     )
     async def health_live() -> LivenessResponse:
         return LivenessResponse(alive=True)
+
+    # Tenant list endpoint (unauthenticated, read-only)
+    if tenant_registry is not None:
+        from tobira.serving.schemas import TenantInfoResponse, TenantListResponse
+
+        @v1_router.get(
+            "/tenants",
+            response_model=TenantListResponse,
+            tags=["tenants"],
+        )
+        async def list_tenants() -> TenantListResponse:
+            tenants = tenant_registry.list_tenants()
+            return TenantListResponse(
+                tenants=[
+                    TenantInfoResponse(
+                        tenant_id=t.tenant_id,
+                        display_name=t.display_name,
+                    )
+                    for t in tenants
+                ],
+                total=len(tenants),
+            )
 
     app.include_router(v1_router)
     app.include_router(v1_protected)
@@ -567,6 +636,16 @@ def main(config_path: str, host: str = "127.0.0.1", port: int = 8000) -> None:
     serving_config = config.get("serving")
     metrics_config = config.get("metrics")
 
+    # Multi-tenant setup
+    registry = None
+    from tobira.serving.tenant import TenantRegistry, load_tenant_configs
+
+    tenant_configs = load_tenant_configs(config)
+    if tenant_configs:
+        registry = TenantRegistry()
+        for tc in tenant_configs:
+            registry.register(tc)
+
     app = create_app(
         backend,
         monitoring=monitoring_config,
@@ -579,6 +658,7 @@ def main(config_path: str, host: str = "127.0.0.1", port: int = 8000) -> None:
         telemetry=telemetry_config,
         serving=serving_config,
         metrics=metrics_config,
+        tenant_registry=registry,
     )
 
     ha_config = config.get("ha", {})

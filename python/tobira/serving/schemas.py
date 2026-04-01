@@ -183,6 +183,11 @@ class PredictResponse(BaseModel):
         description="A/B test variant name that served this prediction. "
         "Present only when ab_test is enabled in server config.",
     )
+    tenant: str | None = Field(
+        default=None,
+        description="Tenant identifier that served this prediction. "
+        "Present only when multi-tenancy is enabled in server config.",
+    )
 
 
 class FeedbackRequest(BaseModel):
@@ -438,6 +443,34 @@ class ActiveLearningStatsResponse(BaseModel):
     pending: int
     labeled: int
     label_counts: dict[str, int]
+
+
+class TenantInfoResponse(BaseModel):
+    """Information about a single tenant."""
+
+    tenant_id: str = Field(description="Unique tenant identifier.")
+    display_name: str = Field(default="", description="Human-readable name.")
+
+
+class TenantListResponse(BaseModel):
+    """Response body for GET /v1/tenants."""
+
+    model_config = ConfigDict(
+        json_schema_extra={
+            "examples": [
+                {
+                    "tenants": [
+                        {"tenant_id": "org-a", "display_name": "Organization A"},
+                        {"tenant_id": "org-b", "display_name": "Organization B"},
+                    ],
+                    "total": 2,
+                },
+            ],
+        },
+    )
+
+    tenants: list[TenantInfoResponse]
+    total: int
 
 
 class ErrorResponse(BaseModel):

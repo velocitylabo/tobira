@@ -99,12 +99,15 @@ class PredictionCollector:
 
         now = datetime.now(timezone.utc)
         score = data.get("score")
-        record = {
+        record: dict[str, object] = {
             "timestamp": now.isoformat(),
             "label": data.get("label"),
             "score": score,
             "latency_ms": latency_ms,
         }
+        tenant = data.get("tenant")
+        if tenant is not None:
+            record["tenant"] = tenant
         append_record(self.log_path, record)
 
         if self._redis_store is not None and isinstance(score, (int, float)):
