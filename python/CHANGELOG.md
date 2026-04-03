@@ -1,5 +1,28 @@
 # Changelog
 
+## [0.6.0](https://github.com/velocitylabo/tobira/compare/tobira-python-v0.5.0...tobira-python-v0.6.0) (2026-04-01)
+
+
+### Features
+
+* add package keywords for npm/PyPI discoverability ([#104](https://github.com/velocitylabo/tobira/issues/104)) ([8d90682](https://github.com/velocitylabo/tobira/commit/8d9068290a40f1afe703c5403c174f52a3df9f58))
+* **core:** add GGUF export pipeline for Ollama deployment ([#149](https://github.com/velocitylabo/tobira/issues/149)) ([ac59b83](https://github.com/velocitylabo/tobira/commit/ac59b83f09ca54102bd806e75f575c0906608139))
+* **explainability:** add attention-based token attribution to /predict ([#119](https://github.com/velocitylabo/tobira/issues/119)) ([bd25f40](https://github.com/velocitylabo/tobira/commit/bd25f40ca62af7b0500765bccd3c72045b3cf7bf))
+* **monitoring:** add OpenTelemetry / Prometheus metrics export ([#150](https://github.com/velocitylabo/tobira/issues/150)) ([a2d4c0f](https://github.com/velocitylabo/tobira/commit/a2d4c0f7f4c2324d588111f06756ffd393521a19))
+* **serving:** add multi-tenant management and tenant isolation ([#151](https://github.com/velocitylabo/tobira/issues/151)) ([e220118](https://github.com/velocitylabo/tobira/commit/e2201185d232fb0e958575ecd0f6add7b47592e9))
+* **serving:** add RBAC and audit logging ([#152](https://github.com/velocitylabo/tobira/issues/152)) ([224c5d1](https://github.com/velocitylabo/tobira/commit/224c5d1dfb28e9d55679ff5a284f6874888c7e22))
+* **tracing:** add OpenTelemetry tracing, structured logging, and Grafana dashboards ([#153](https://github.com/velocitylabo/tobira/issues/153)) ([a32088a](https://github.com/velocitylabo/tobira/commit/a32088a3d3db61d5175b4d570edcbbf4840ee4e3))
+
+
+### Documentation
+
+* rewrite README for PyPI and npm ([45ac6fd](https://github.com/velocitylabo/tobira/commit/45ac6fd4692f15e14b5ae0a7fed7b7eb08016650))
+
+
+### Miscellaneous
+
+* migrate GitHub org from piroz to velocitylabo ([#89](https://github.com/velocitylabo/tobira/issues/89)) ([f63e46e](https://github.com/velocitylabo/tobira/commit/f63e46ec9f57f6251ceb076091754d8e99045e57))
+
 ## [0.5.0](https://github.com/velocitylabo/tobira/compare/tobira-python-v0.4.0...tobira-python-v0.5.0) (2026-03-21)
 
 
