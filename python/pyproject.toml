@@ -46,7 +46,7 @@ fasttext = [
 ]
 bert = [
     "torch>=2.0",
-    "transformers>=4.30",
+    "transformers>=4.57.6",
 ]
 serving = [
     "fastapi>=0.100",
@@ -59,7 +59,7 @@ evaluation = [
 ]
 onnx = [
     "onnxruntime>=1.16",
-    "transformers>=4.30",
+    "transformers>=4.57.6",
     "optimum>=1.13",
 ]
 llm = [
@@ -76,7 +76,7 @@ hub = [
 ]
 gguf = [
     "torch>=2.0",
-    "transformers>=4.30",
+    "transformers>=4.57.6",
     "peft>=0.7",
     "gguf>=0.6",
 ]
