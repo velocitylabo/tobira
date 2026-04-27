@@ -108,7 +108,7 @@ jobs:
       - name: Build Docker image
         run: docker compose build tobira-api
       - name: Run Trivy scan
-        uses: aquasecurity/trivy-action@0.35.0
+        uses: aquasecurity/trivy-action@v0.36.0
         with:
           image-ref: "docker-tobira-api:latest"
           format: "json"
